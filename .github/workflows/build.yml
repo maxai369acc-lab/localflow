@@ -1,0 +1,64 @@
+# Builds downloadable desktop bundles for Windows and macOS.
+#
+# macOS backends: pynput hotkeys (Ctrl+Option chords), pbcopy/pbpaste +
+# osascript paste, NSWorkspace app context, LaunchAgent autostart. First run
+# on a Mac needs Accessibility + Microphone permissions granted to the app.
+
+name: build-desktop
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: LocalFlow-windows-x64
+          - os: macos-latest
+            artifact: LocalFlow-macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install project + PyInstaller
+        run: |
+          uv sync
+          uv pip install pyinstaller
+
+      - name: Smoke-test imports
+        run: uv run python -c "import localflow.app, localflow.insert, localflow.hotkeys, localflow.context"
+
+      - name: Run tests
+        run: uv run pytest -q
+
+      - name: Generate icon
+        run: uv run python make_icon.py
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: >
+          uv run pyinstaller --noconfirm --noconsole --name LocalFlow
+          --icon localflow.ico --paths src
+          --collect-all faster_whisper --collect-all ctranslate2
+          --collect-all av --collect-all onnx_asr --collect-all onnxruntime
+          --collect-all pystray launcher.py
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: >
+          uv run pyinstaller --noconfirm --windowed --name LocalFlow
+          --paths src
+          --collect-all faster_whisper --collect-all ctranslate2
+          --collect-all av --collect-all onnx_asr --collect-all onnxruntime
+          --collect-all pystray launcher.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/

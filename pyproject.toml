@@ -1,0 +1,43 @@
+[project]
+name = "localflow"
+version = "0.1.0"
+description = "Local Flow - local, private, system-wide AI dictation"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "faster-whisper>=1.1.0",
+    "sounddevice>=0.5.0",
+    "numpy>=1.26",
+    "keyboard>=0.13.5; sys_platform == 'win32'",
+    "pystray>=0.19.5",
+    "pillow>=10.0",
+    "pywin32>=306; sys_platform == 'win32'",
+    "pynput>=1.7.6; sys_platform == 'darwin'",
+    "pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'",
+    "pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'",
+    "psutil>=5.9",
+    "requests>=2.31",
+    "rapidfuzz>=3.6",
+]
+
+[project.optional-dependencies]
+parakeet = ["onnx-asr[cpu,hub]"]
+server = ["fastapi>=0.110", "uvicorn>=0.29"]
+
+[project.scripts]
+localflow = "localflow.app:main"
+localflow-bench = "localflow.bench:main"
+localflow-setup = "localflow.setup_models:main"
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/localflow"]
+
+[tool.uv]
+cache-dir = "D:/AI/Caches/uv"
