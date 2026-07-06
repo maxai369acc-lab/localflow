@@ -150,7 +150,8 @@ rem -- renaming LIVE fails while any of its files are still locked, so the
 rem -- move doubles as a non-destructive "has the app exited yet" probe
 for /l %%i in (1,1,60) do (
   move "%LIVE%" "%BACKUP%" >nul 2>&1 && goto swap
-  timeout /t 1 /nobreak >nul
+  rem ping is the sleep that still works in a detached, console-less process
+  ping -n 2 127.0.0.1 >nul
 )
 exit /b 1
 

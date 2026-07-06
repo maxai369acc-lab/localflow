@@ -108,7 +108,7 @@ DEFAULTS: dict = {
     },
     "update": {
         "check_enabled": True,
-        "repo": "",                   # "owner/name" on GitHub; empty = never check
+        "repo": "maxai369acc-lab/localflow",  # GitHub repo of the update feed; empty = never check
     },
     "dev": {
         "enabled": True,

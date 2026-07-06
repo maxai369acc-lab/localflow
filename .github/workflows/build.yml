@@ -75,4 +75,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           Compress-Archive -Path dist/LocalFlow -DestinationPath LocalFlow-win64.zip
-          gh release create "${{ github.ref_name }}" LocalFlow-win64.zip --title "${{ github.ref_name }}" --generate-notes
+          gh release view "${{ github.ref_name }}" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload "${{ github.ref_name }}" LocalFlow-win64.zip --clobber
+          } else {
+            gh release create "${{ github.ref_name }}" LocalFlow-win64.zip --title "${{ github.ref_name }}" --generate-notes
+          }
