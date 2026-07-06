@@ -11,6 +11,9 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+permissions:
+  contents: write   # tag builds create GitHub Releases
+
 jobs:
   build:
     strategy:
@@ -62,3 +65,14 @@ jobs:
         with:
           name: ${{ matrix.artifact }}
           path: dist/
+
+      # On tag pushes, attach the Windows build to a GitHub Release under the
+      # exact asset name the in-app auto-updater looks for.
+      - name: Publish release asset (Windows)
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Compress-Archive -Path dist/LocalFlow -DestinationPath LocalFlow-win64.zip
+          gh release create "${{ github.ref_name }}" LocalFlow-win64.zip --title "${{ github.ref_name }}" --generate-notes

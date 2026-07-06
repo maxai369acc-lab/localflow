@@ -106,6 +106,10 @@ DEFAULTS: dict = {
         "show_widget": True,          # always-on-screen floating orb
         "widget_pos": None,           # [x, y] saved after dragging
     },
+    "update": {
+        "check_enabled": True,
+        "repo": "",                   # "owner/name" on GitHub; empty = never check
+    },
     "dev": {
         "enabled": True,
         "workspace_folders": [],      # user-granted roots for identifier scan

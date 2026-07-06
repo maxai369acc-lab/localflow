@@ -29,6 +29,7 @@ from .llm_server import LlamaServerManager
 from .polish import LlamaClient, PolishError
 from .rules import apply_rules, chat_trailing_period, remove_fillers
 from .ui import Tray, Ui
+from .updater import UpdateChecker, UpdateInfo, Updater, is_packaged
 
 log = logging.getLogger("localflow")
 
@@ -68,6 +69,8 @@ class App:
 
         self.asr = None
         self.asr_error: str | None = None
+        self.update_available: UpdateInfo | None = None
+        self._update_busy = False
         self.llm_ready = False
         self.dev_identifiers: list[str] = []
         self._dev_pairs: list[tuple[str, str]] = []
@@ -189,6 +192,46 @@ class App:
             self._spawn(self._start_llm)
         if self.cfg["dev"]["enabled"] and self.cfg["dev"]["workspace_folders"]:
             self._spawn(self._scan_dev)
+        if (is_packaged() and self.cfg["update"]["check_enabled"]
+                and self.cfg["update"]["repo"]):
+            self._spawn(self._update_check_loop)
+
+    # ---- auto-update -------------------------------------------------------
+    def _update_check_loop(self) -> None:
+        checker = UpdateChecker(self.cfg["update"]["repo"], __version__)
+        time.sleep(30)  # let startup (ASR/LLM load) settle first
+        while not self._quitting:
+            info = checker.check()
+            if info and info != self.update_available:
+                self.update_available = info
+                log.info("update available: v%s", info.version)
+                self.tray.notify(f"Local Flow v{info.version} is available",
+                                 "Right-click the tray icon and choose "
+                                 "'Install update' when convenient.")
+                self.tray.set_state(self.state)  # refresh menu
+            time.sleep(24 * 3600)
+
+    def install_update(self) -> None:
+        self._spawn(self._install_update)
+
+    def _install_update(self) -> None:
+        info = self.update_available
+        if info is None or self._update_busy:
+            return
+        self._update_busy = True
+        try:
+            self.tray.notify("Downloading update…",
+                             f"Local Flow v{info.version} is downloading in "
+                             "the background.")
+            updater = Updater(DATA_DIR / "updates")
+            staged = updater.download_and_stage(info)
+            log.info("update v%s staged at %s", info.version, staged)
+            updater.apply_and_restart(staged, self.quit)
+        except Exception as e:
+            log.exception("update install failed")
+            self.tray.notify("Update failed",
+                             f"{e}\nLocal Flow keeps running on v{__version__}.")
+            self._update_busy = False
 
     def _scan_dev(self) -> None:
         try:

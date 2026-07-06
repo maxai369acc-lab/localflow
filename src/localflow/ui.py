@@ -452,6 +452,11 @@ class Tray:
             I("Start with Windows", lambda *_: a.toggle_autostart(),
               checked=lambda item: a.autostart_enabled),
             M.SEPARATOR,
+            I(lambda item: ("Install update"
+                            if a.update_available is None
+                            else f"Install update v{a.update_available.version}"),
+              lambda *_: a.install_update(),
+              visible=lambda item: a.update_available is not None),
             I("Quit Local Flow", lambda *_: a.quit()),
         )
 
