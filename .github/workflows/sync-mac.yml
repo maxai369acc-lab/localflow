@@ -1,0 +1,41 @@
+# Mirrors every push on main to the standalone macOS repo (localflow-mac),
+# preserving that repo's own Mac-first README.md. Auth is a deploy key
+# scoped to localflow-mac only (secret MAC_REPO_DEPLOY_KEY).
+
+name: sync-mac-repo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mirror to localflow-mac
+        env:
+          DEPLOY_KEY: ${{ secrets.MAC_REPO_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git clone --depth 1 git@github.com:maxai369acc-lab/localflow-mac.git /tmp/mac
+          # copy everything except .git and the Mac repo's own README.md
+          rsync -a --delete --exclude '.git' --exclude 'README.md' ./ /tmp/mac/
+          cd /tmp/mac
+          git config user.name "localflow sync"
+          git config user.email "maxai369acc@gmail.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "nothing to sync"
+            exit 0
+          fi
+          git commit -m "sync: mirror maxai369acc-lab/localflow@${GITHUB_SHA::7}"
+          git push
